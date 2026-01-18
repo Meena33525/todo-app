@@ -1,59 +1,97 @@
-// Import Express - the framework for creating servers
+// Import packages
 const express = require('express');
-
-// Import CORS - allows frontend to talk to backend
 const cors = require('cors');
+require('dotenv').config();
 
-// Create an Express app
+// Create app
 const app = express();
-
-// Set the port (phone number) - 5000 is a common port
 const PORT = 5000;
 
-// Middleware - tells Express to allow requests from frontend
+// Middleware
 app.use(cors());
-
-// Middleware - tells Express to understand JSON data
 app.use(express.json());
 
 // ==================== ROUTES ====================
-// A route is like a phone extension: "Press 1 for customer service"
 
-// Route 1: GET / (root route - when user visits http://localhost:5000/)
+// Route 1: GET /
 app.get('/', (req, res) => {
-  // req = request (what the frontend asks)
-  // res = response (what we send back)
-  
-  res.json({
-    message: 'Welcome to Todo App Backend!',
-    status: 'Server is running ✅'
-  });
+  res.json({ message: 'Welcome to Todo App Backend!' });
 });
 
-// Route 2: Simple test route
+// Route 2: GET /api/test
 app.get('/api/test', (req, res) => {
-  res.json({
-    message: 'This is a test route',
-    timestamp: new Date()
-  });
+  res.json({ message: 'Test route works!' });
 });
 
-// ==================== START SERVER ====================
-// Listen on the port and start the server
+// Route 3: POST /api/test
+app.post('/api/test', (req, res) => {
+  res.json({ message: 'POST test works!' });
+});
+
+// ==================== DEBUG ROUTES (VIEW DATABASE) ====================
+
+// View all users
+app.get('/api/debug/users', async (req, res) => {
+  try {
+    const { User } = require('./models');
+    const users = await User.findAll();
+    res.json({ users });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// View all todos
+app.get('/api/debug/todos', async (req, res) => {
+  try {
+    const { Todo } = require('./models');
+    const todos = await Todo.findAll();
+    res.json({ todos });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== AUTH ROUTES ====================
+// Import auth routes
+try {
+  const authRoutes = require('./routes/auth');
+  app.use('/api/auth', authRoutes);
+  console.log('✅ Auth routes loaded');
+} catch (error) {
+  console.error('❌ Error loading auth routes:', error.message);
+}
+
+// ==================== TODO ROUTES ====================
+// Import todo routes (protected by auth middleware)
+try {
+  const todoRoutes = require('./routes/todos');
+  app.use('/api/todos', todoRoutes);
+  console.log('✅ Todo routes loaded');
+} catch (error) {
+  console.error('❌ Error loading todo routes:', error.message);
+}
+
+// ==================== DATABASE ====================
 // Import database and models
 const sequelize = require('./config/database');
-const { User, Todo } = require('./models');
+const models = require('./models');
 
-// ==================== DATABASE SYNC ====================
-// This tells Sequelize to create tables if they don't exist
-sequelize.sync({ alter: true }).then(() => {
-  console.log('✅ Database synchronized successfully');
-}).catch((error) => {
-  console.error('❌ Database sync error:', error);
-});
+// Sync database
+sequelize.sync({ alter: true })
+  .then(() => console.log('✅ Database synced'))
+  .catch(err => console.error('❌ Database error:', err.message));
 
 // ==================== START SERVER ====================
-app.listen(PORT, () => {
-  console.log(`🚀 Server is running on http://localhost:${PORT}`);
-  console.log(`Press Ctrl+C to stop the server`);
+const server = app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+});
+
+// Handle errors
+server.on('error', (err) => {
+  console.error('❌ Server error:', err.message);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught exception:', err.message);
 });
