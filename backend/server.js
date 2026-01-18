@@ -40,6 +40,19 @@ app.get('/api/test', (req, res) => {
 
 // ==================== START SERVER ====================
 // Listen on the port and start the server
+// Import database and models
+const sequelize = require('./config/database');
+const { User, Todo } = require('./models');
+
+// ==================== DATABASE SYNC ====================
+// This tells Sequelize to create tables if they don't exist
+sequelize.sync({ alter: true }).then(() => {
+  console.log('✅ Database synchronized successfully');
+}).catch((error) => {
+  console.error('❌ Database sync error:', error);
+});
+
+// ==================== START SERVER ====================
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on http://localhost:${PORT}`);
   console.log(`Press Ctrl+C to stop the server`);
